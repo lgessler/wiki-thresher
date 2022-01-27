@@ -33,7 +33,7 @@ def apply_html_transformations(config, html, mwtext_object):
 
     soup = fix_root(config, soup, mwtext_object)
     soup = insert_document_title(soup, mwtext_object)
-    return re.sub(r"\n+", "\n", str(soup))
+    return soup
 
 
 def unescape_html_elements(html):
@@ -52,11 +52,12 @@ def insert_document_title(soup, mwtext_object):
 def fix_root(config, soup, mwtext_object):
     soup.name = "text"
     soup.attrs = {
-        "id": "AUTOGUM_" + config["family"] + "_" + mwtext_object.file_safe_url,
+        "id": config["family"] + "_" + mwtext_object.file_safe_url,
         "revid": mwtext_object.rev_id,
         "sourceURL": mwtext_object.url,
         "type": config["family"],
         "title": mwtext_object.title,
+        "ns": mwtext_object.ns
     }
     return soup
 
@@ -67,7 +68,12 @@ def parse(html):
 
 def new_root(config, soup, css_selector=None):
     """Find an HTML element and discard ALL content above it; i.e., make it the new document root"""
-    return soup.select(css_selector)[0]
+    try:
+        return soup.select(css_selector)[0]
+    except IndexError:
+        assert css_selector == "body", "FIXME: if new root selector can't be found, be more flexible"
+        new_soup = BeautifulSoup(f"<body>{soup}</body>", "html.parser")
+        return new_soup
 
 
 def discard_empty_elements(config, soup, exempt=[]):
