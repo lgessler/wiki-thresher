@@ -43,9 +43,9 @@ transformations:
   # see html.py
   html:
     # get rid of the outer <html>
-    # - name: new_root
-    #   args:
-    #     css_selector: body
+    - name: new_root
+      args:
+        css_selector: body
 
     # remove tags
     - name: discard_elements

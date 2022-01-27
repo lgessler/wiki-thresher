@@ -32,7 +32,7 @@ def page_soup_to_object(config, soup):
     id = soup.id.text
     obj = MWText(
         id=id,
-        rev_id=revision.id,
+        rev_id=revision.id.text,
         title=title,
         text=soup.find("text").text,
         file_safe_url=f"{config['url'].replace('.', '_')}__{id}.html",
@@ -42,7 +42,7 @@ def page_soup_to_object(config, soup):
 
 
 def parsoid_convert_via_cli(config, mwtext):
-    command = ["php", "parsoid/bin/parse.php", f"--domain={config['url']}"]
+    command = ["php", "parsoid/bin/parse.php", f"--domain={config['url']}", "--body_only=false"]
     if "api_url" in config:
         command.append(f"--apiURL={config['api_url']}")
     parser_subprocess = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
