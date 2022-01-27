@@ -60,13 +60,20 @@ def parsoid_convert_via_cli(config, mwtext):
 
 
 def process_page(config, page, out_dir=None):
-    page = page_soup_to_object(config, page)
-    path = f'{out_dir}/{page.file_safe_url}'
+    file_safe_url = f"{config['url'].replace('.', '_')}__{page.id.text}.html"
+    path = f'{out_dir}/{file_safe_url}'
     if out_dir is not None and os.path.isfile(path):
         print(f"Reading from cached value at {path}")
         with open(path, 'r') as f:
             return f.read()
 
+    try:
+        page = page_soup_to_object(config, page)
+    except KeyError:
+        print("Error while trying to get URL info for " + page.id.text)
+        with open(path, 'w') as f:
+            f.write("")
+        return ""
     mwtext = apply_mwtext_transformations(config, page.text)
 
     html = parsoid_convert_via_cli(config, mwtext)
