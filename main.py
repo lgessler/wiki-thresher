@@ -1,9 +1,13 @@
+import os
 import subprocess
+from time import sleep
 
 import click
 from dataclasses import dataclass
 import yaml
 import requests
+from rich import print
+from rich.progress import track
 
 from wiki_thresher.html_xform import apply_html_transformations
 from wiki_thresher.mwtext_xform import apply_mwtext_transformations
@@ -22,6 +26,7 @@ class MWText:
     title: str
     file_safe_url: str
     url: str
+    ns: str
 
 
 def page_soup_to_object(config, soup):
@@ -36,7 +41,8 @@ def page_soup_to_object(config, soup):
         title=title,
         text=soup.find("text").text,
         file_safe_url=f"{config['url'].replace('.', '_')}__{id}.html",
-        url=resp["query"]["pages"][str(id)]["fullurl"]
+        url=resp["query"]["pages"][str(id)]["fullurl"],
+        ns=soup.find("ns").text
     )
     return obj
 
@@ -53,26 +59,39 @@ def parsoid_convert_via_cli(config, mwtext):
     return html
 
 
-def process_page(config, page):
+def process_page(config, page, out_dir=None):
     page = page_soup_to_object(config, page)
+    path = f'{out_dir}/{page.file_safe_url}'
+    if out_dir is not None and os.path.isfile(path):
+        print(f"Reading from cached value at {path}")
+        with open(path, 'r') as f:
+            return f.read()
+
     mwtext = apply_mwtext_transformations(config, page.text)
 
     html = parsoid_convert_via_cli(config, mwtext)
     html = apply_html_transformations(config, html, page)
-    with open('tmp.html', 'w') as f:
-        f.write(html)
+    if out_dir is not None:
+        with open(path, 'w') as f:
+            f.write(html.prettify())
+        print(f"Wrote to {path}")
+    sleep(0.2)
     return html
+
 
 @click.command()
 @click.argument("dump", type=click.File("r"))
+@click.argument("out_dir", type=str)
 @click.option("-c", "--config", type=click.File("r"))
-def process(dump, config):
+def process(dump, out_dir, config):
     soup = BeautifulSoup(dump.read(), features="lxml")
     pages = soup.find_all("page")
     config = yaml.load(config.read(), Loader=Loader)
-    for page in pages:
-        html = process_page(config, page)
-        assert False
+    os.makedirs(out_dir, exist_ok=True)
+
+    for page in track(pages, "Scraping..."):
+        process_page(config, page, out_dir)
+    #list(pmap(lambda page: , pages))
 
 
 if __name__ == '__main__':
