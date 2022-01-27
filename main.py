@@ -1,11 +1,15 @@
+import csv
 import os
 import subprocess
+from collections import Counter
+from glob import glob
 from time import sleep
 
 import click
 from dataclasses import dataclass
 import yaml
 import requests
+from nltk import word_tokenize
 from rich import print
 from rich.progress import track
 
@@ -27,6 +31,11 @@ class MWText:
     file_safe_url: str
     url: str
     ns: str
+
+
+@click.group()
+def top():
+    pass
 
 
 def page_soup_to_object(config, soup):
@@ -63,7 +72,7 @@ def process_page(config, page, out_dir=None):
     file_safe_url = f"{config['url'].replace('.', '_')}__{page.id.text}.html"
     path = f'{out_dir}/{file_safe_url}'
     if out_dir is not None and os.path.isfile(path):
-        print(f"Reading from cached value at {path}")
+        #print(f"Reading from cached value at {path}")
         with open(path, 'r') as f:
             return f.read()
 
@@ -71,16 +80,14 @@ def process_page(config, page, out_dir=None):
         page = page_soup_to_object(config, page)
     except KeyError:
         print("Error while trying to get URL info for " + page.id.text)
-        with open(path, 'w') as f:
-            f.write("")
-        return ""
+        return None
     mwtext = apply_mwtext_transformations(config, page.text)
 
     html = parsoid_convert_via_cli(config, mwtext)
     html = apply_html_transformations(config, html, page)
     if out_dir is not None:
         with open(path, 'w') as f:
-            f.write(html.prettify())
+            f.write(html)
         print(f"Wrote to {path}")
     sleep(0.2)
     return html
@@ -101,5 +108,32 @@ def process(dump, out_dir, config):
     #list(pmap(lambda page: , pages))
 
 
+@click.command()
+@click.argument("dir", type=str)
+def stat(dir):
+    counter = Counter()
+    for filepath in sorted(glob(f"{dir}/*.html")):
+        with open(filepath, 'r') as f:
+            soup = BeautifulSoup(f.read(), "html.parser")
+            if soup is None:
+                continue
+        text_elt = soup.find("text")
+        if text_elt is None:
+            print(f"Error reading {filepath}")
+        else:
+            if text_elt["ns"] == "0":
+                text = text_elt.text
+                tokens = word_tokenize(text)
+                for token in tokens:
+                    counter[token] += 1
+    print(sum(counter.values()))
+    with open("vocab.tsv", 'wt') as f:
+        writer = csv.writer(f, delimiter='\t')
+        for k, v in sorted(counter.items(), key=lambda x:-x[1]):
+            writer.writerow([k, v])
+
+
 if __name__ == '__main__':
-    process()
+    top.add_command(process)
+    top.add_command(stat)
+    top()
