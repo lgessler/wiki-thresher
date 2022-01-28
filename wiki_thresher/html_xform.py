@@ -165,16 +165,17 @@ def substitute_tags(config, soup, substitutions):
                 tag.name = new_name
                 if attr_map and hasattr(tag, "attrs"):
                     for old_attr_name, new_attr_name in attr_map.items():
-                        v = tag.attrs[old_attr_name]
-                        # special handling for URLs: attempt to resolve if it's relative
-                        if (
-                            new_name == "ref"
-                            and new_attr_name == "target"
-                            and v.startswith("./")
-                        ):
-                            v = "https://" + config["url"] + "/wiki" + v[1:]
-                        tag.attrs[new_attr_name] = v
-                        del tag.attrs[old_attr_name]
+                        if old_attr_name in tag.attrs:
+                            v = tag.attrs[old_attr_name]
+                            # special handling for URLs: attempt to resolve if it's relative
+                            if (
+                                new_name == "ref"
+                                and new_attr_name == "target"
+                                and v.startswith("./")
+                            ):
+                                v = "https://" + config["url"] + "/wiki" + v[1:]
+                            tag.attrs[new_attr_name] = v
+                            del tag.attrs[old_attr_name]
                 if new_attrs:
                     if not hasattr(tag, "attrs"):
                         tag.attrs = new_attrs
