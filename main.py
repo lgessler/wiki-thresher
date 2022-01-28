@@ -89,7 +89,7 @@ def process_page(config, page, out_dir=None):
         with open(path, 'w') as f:
             f.write(str(html))
         print(f"Wrote to {path}")
-    sleep(0.2)
+    sleep(0.1)
     return html
 
 
