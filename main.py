@@ -87,7 +87,7 @@ def process_page(config, page, out_dir=None):
     html = apply_html_transformations(config, html, page)
     if out_dir is not None:
         with open(path, 'w') as f:
-            f.write(html)
+            f.write(str(html))
         print(f"Wrote to {path}")
     sleep(0.2)
     return html
