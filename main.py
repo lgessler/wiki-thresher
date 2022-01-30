@@ -4,22 +4,22 @@ import subprocess
 from collections import Counter
 from glob import glob
 from time import sleep
-
 import click
+
 from dataclasses import dataclass
 import yaml
 import requests
 from nltk import word_tokenize
 from rich import print
 from rich.progress import track
-
-from wiki_thresher.html_xform import apply_html_transformations
-from wiki_thresher.mwtext_xform import apply_mwtext_transformations
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
     from yaml import Loader, Dumper
 from bs4 import BeautifulSoup
+
+from wiki_thresher.html_xform import apply_html_transformations
+from wiki_thresher.mwtext_xform import apply_mwtext_transformations
 
 
 @dataclass
