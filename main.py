@@ -121,11 +121,10 @@ def stat(dir):
         if text_elt is None:
             print(f"Error reading {filepath}")
         else:
-            if text_elt["ns"] == "0":
-                text = text_elt.text
-                tokens = word_tokenize(text)
-                for token in tokens:
-                    counter[token] += 1
+            text = text_elt.text
+            tokens = word_tokenize(text)
+            for token in tokens:
+                counter[token] += 1
     print(sum(counter.values()))
     with open("vocab.tsv", 'wt') as f:
         writer = csv.writer(f, delimiter='\t')
@@ -133,7 +132,25 @@ def stat(dir):
             writer.writerow([k, v])
 
 
+@click.command()
+@click.argument("in_dir")
+@click.argument("out_dir")
+def filter(in_dir, out_dir):
+    os.makedirs(out_dir, exist_ok=True)
+    for filepath in track(glob(f"{in_dir}/*.html")):
+        try:
+            with open(filepath, 'r') as f:
+                soup = BeautifulSoup(f.read(), features="lxml")
+            if soup.find('text')["ns"] in ["0"]:
+                with open(filepath.replace(in_dir, out_dir), 'w') as f:
+                    f.write(str(soup))
+        except Exception as e:
+            print(f"Error processing {filepath}")
+            continue
+
+
 if __name__ == '__main__':
     top.add_command(process)
     top.add_command(stat)
+    top.add_command(filter)
     top()
