@@ -98,11 +98,10 @@ def process_page(config, page, out_dir=None):
 @click.argument("out_dir", type=str)
 @click.option("-c", "--config", type=click.File("r"))
 def process(dump, out_dir, config):
-    soup = BeautifulSoup(dump.read(), features="lxml")
+    soup = BeautifulSoup(dump.read(), features="html.parser")
     pages = soup.find_all("page")
     config = yaml.load(config.read(), Loader=Loader)
     os.makedirs(out_dir, exist_ok=True)
-
     for page in track(pages, "Scraping..."):
         process_page(config, page, out_dir)
     #list(pmap(lambda page: , pages))
